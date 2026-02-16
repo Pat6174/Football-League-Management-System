@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <img src="{{ team.logo_url }}" style="height: 50px; margin-right: 15px;">
+            {{ team.name }}
+        </h2>
+        <a href="{{ url_for('teams_list') }}" class="btn btn-secondary">
+            &larr; Back to Teams
+        </a>
+    </div>
+
+    <div class="alert alert-light border shadow-sm">
+        <strong>Manager:</strong> {{ team.manager or 'Unknown' }}
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-bold">
+            Squad List
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Position</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                    <tr>
+                        <td>
+                            {% if player.shirt_number %}
+                                <span class="badge bg-secondary rounded-circle">{{ player.shirt_number }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ player.name }}</td>
+                        <td>{{ player.position }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">
+                            No players found for this team.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

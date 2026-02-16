@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+
+    <style>
+        /* General Table Styling to match the clean look */
+        table {
+            border-collapse: separate; 
+            border-spacing: 0;
+        }
+        
+        /* Top 4: Blue Bar */
+        .row-ucl td:first-child {
+            border-left: 5px solid #0d6efd; /* Bright Blue */
+        }
+
+        /* 5th: Orange Bar */
+        .row-uel td:first-child {
+            border-left: 5px solid #fd7e14; /* Orange */
+        }
+
+        /* Bottom 3: Red Bar */
+        .row-rel td:first-child {
+            border-left: 5px solid #dc3545; /* Red */
+        }
+
+        /* Default border for others (Invisible but keeps alignment) */
+        tr td:first-child {
+            border-left: 5px solid transparent;
+        }
+    </style>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        
+        <div class="d-flex align-items-center">
+            <img src="{{ url_for('static', filename='images/pl_logo2.png') }}" 
+                 alt="PL Logo" 
+                 style="height: 75px; margin-right: 20px;">
+            <div class="d-flex flex-column align-items-start"> 
+                <h1 class="fw-bold mb-0 text-dark" style="line-height: 1;">Premier League</h1>
+                <span class="text-muted fw-bold mt-1">Season 2025-2026</span>
+            </div>
+        </div>
+
+        <div>
+            {% if session.get('role') == 'admin' %}
+                <button onclick="syncDatabase()" class="btn btn-danger shadow-sm fw-bold">
+                    🔄 Sync Live API Data
+                </button>
+                <a href="/logout" class="btn btn-outline-secondary fw-bold ms-2">Logout</a>
+            {% else %}
+                <a href="/login" class="btn btn-outline-primary shadow-sm fw-bold">Admin Login</a>
+            {% endif %}
+        </div>
+        
+    </div> 
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white fw-bold">
+            League Standings
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">#</th> <th>Team</th>
+                        <th class="text-center">MP</th>
+                        <th class="text-center">W</th>
+                        <th class="text-center">D</th>
+                        <th class="text-center">L</th>
+                        <th class="text-center">GD</th>
+                        <th class="text-center fw-bold">Pts</th>
+                        <th class="text-center">Last Five</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    
+                    {% set row_class = "" %}
+                    {% if loop.index <= 4 %}
+                        {% set row_class = "row-ucl" %}
+                    {% elif loop.index == 5 %}
+                        {% set row_class = "row-uel" %}
+                    {% elif loop.index > (teams|length - 3) %}
+                        {% set row_class = "row-rel" %}
+                    {% endif %}
+
+                    <tr class="{{ row_class }}">
+                        <td class="ps-3 fw-bold">{{ loop.index }}</td> 
+                        <td class="fw-bold">
+                            <img src="{{ team.logo }}" style="height: 25px; margin-right: 10px;">
+                            
+                            <a href="{{ url_for('squad', team_id=team.id) }}" class="text-decoration-none text-dark">
+                                {{ team.name }}
+                            </a>
+                        </td>
+                        <td class="text-center">{{ team.played }}</td>
+                        <td class="text-center">{{ team.won }}</td>
+                        <td class="text-center">{{ team.drawn }}</td>
+                        <td class="text-center">{{ team.lost }}</td>
+                        <td class="text-center fw-bold">{{ team.goal_diff }}</td>
+                        <td class="text-center fw-bold fs-5">{{ team.points }}</td>
+                        <td class="text-center" style="min-width: 140px;">
+                            {% for result in team.form %}
+                                
+                                {% if result == 'W' %}
+                                    <span style="display:inline-block; width:20px; height:20px; background-color:#198754; color:white; border-radius:50%; text-align:center; line-height:20px; font-size:10px; margin-right:2px;">
+                                        ✔
+                                    </span>
+                                {% elif result == 'D' %}
+                                    <span style="display:inline-block; width:20px; height:20px; background-color:#6c757d; color:white; border-radius:50%; text-align:center; line-height:20px; font-size:10px; margin-right:2px;">
+                                        -
+                                    </span>
+                                {% else %}
+                                    <span style="display:inline-block; width:20px; height:20px; background-color:#dc3545; color:white; border-radius:50%; text-align:center; line-height:20px; font-size:10px; margin-right:2px;">
+                                        ✖
+                                    </span>
+                                {% endif %}
+
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="mt-2 small text-muted">
+        <span class="me-3"><span style="display:inline-block; width:10px; height:10px; background:#0d6efd; margin-right:5px;"></span>Champions League</span>
+        <span class="me-3"><span style="display:inline-block; width:10px; height:10px; background:#fd7e14; margin-right:5px;"></span>Europa League</span>
+        <span><span style="display:inline-block; width:10px; height:10px; background:#dc3545; margin-right:5px;"></span>Relegation</span>
+    </div>
+
+</div>
+
+<script>
+    function syncDatabase() {
+        // Change button text to show it is loading
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Syncing... Please Wait";
+        btn.disabled = true;
+
+        fetch('/admin/sync', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    alert("✅ " + data.success);
+                    location.reload(); // Refreshes page to show new standings
+                } else {
+                    alert("❌ Error: " + data.error);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                alert("❌ Critical Error contacting server.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    }
+</script>
+{% endblock %}
